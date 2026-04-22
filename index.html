@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>인천고잔고 AI와 탐구하기</title>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
+        body { font-family: "Pretendard", -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        // Lucide 아이콘을 React에서 사용하기 위한 래퍼
+        const Icon = ({ name, ...props }) => {
+            const iconRef = React.useRef(null);
+            React.useEffect(() => {
+                if (window.lucide) {
+                    window.lucide.createIcons();
+                }
+            }, [name]);
+            return <i data-lucide={name} {...props}></i>;
+        };
+
+        // 선생님의 아이콘 컴포넌트 매핑 (Lucide 아이콘 이름을 소문자-대시 형태로 연결)
+        const Home = (p) => <Icon name="home" {...p} />;
+        const Layout = (p) => <Icon name="layout" {...p} />;
+        const BookOpen = (p) => <Icon name="book-open" {...p} />;
+        const Target = (p) => <Icon name="target" {...p} />;
+        const RefreshCw = (p) => <Icon name="refresh-cw" {...p} />;
+        const Clipboard = (p) => <Icon name="clipboard" {...p} />;
+        const CheckCircle2 = (p) => <Icon name="check-circle-2" {...p} />;
+        const ChevronRight = (p) => <Icon name="chevron-right" {...p} />;
+        const ChevronLeft = (p) => <Icon name="chevron-left" {...p} />;
+        const ExternalLink = (p) => <Icon name="external-link" {...p} />;
+        const User = (p) => <Icon name="user" {...p} />;
+        const Sparkles = (p) => <Icon name="sparkles" {...p} />;
+        const Info = (p) => <Icon name="info" {...p} />;
+        const Edit3 = (p) => <Icon name="edit-3" {...p} />;
+        const Copy = (p) => <Icon name="copy" {...p} />;
+        const LogIn = (p) => <Icon name="log-in" {...p} />;
+        const FileText = (p) => <Icon name="file-text" {...p} />;
+        const Save = (p) => <Icon name="save" {...p} />;
+        const MousePointer2 = (p) => <Icon name="mouse-pointer-2" {...p} />;
+
+        // --- 선생님의 원본 데이터 및 로직 시작 ---
+        const TRACKS = [ /* 위에서 주신 데이터와 동일함 */
+        {
+    id: 'academic',
+    title: '학술형',
+    icon: <BookOpen className="w-8 h-8" />,
+    description: '데이터로 세상을 읽고 비판적으로 분석하여 사회 문제를 해결할 나만의 대안을 찾습니다.',
+    prompts: [
+      { id: 1, title: '문제 찾기', text: (theme) => `내가 분석하고 싶은 사회 현상은 [${theme}]이야. 이 현상이 얼마나 심각한지 보여주는 통계 자료 3가지를 추천해주고, 각각의 숫자가 우리 사회에 어떤 의미를 주는지 설명해 줘.` },
+      { id: 2, title: '나의 생각 검증', text: (theme) => `나는 [지표 A]가 늘어나면 [지표 B]도 함께 변한다고 생각해. 내 생각이 맞는지 최근 통계 자료와 사회 과학 이론을 바탕으로 확인해 줄래?` },
+      { id: 3, title: '비판적으로 보기', text: (theme) => `방금 분석한 결과가 내 편견일 수도 있을까? 내 생각과 반대되는 사례나, 내가 놓치고 있는 다른 원인이 있다면 알려줘.` },
+      { id: 4, title: '이유 탐구', text: (theme) => `이런 사회 현상이 생기는 진짜 이유를 사람의 마음(심리)이나 사회 시스템의 문제점에서 찾아 분석해 줘.` },
+      { id: 5, title: '미래 예측', text: (theme) => `지금처럼 상황이 계속된다면, 10년 뒤에는 어떤 문제가 더 커질까? 구체적인 숫자를 들어서 미래 모습을 그려줘.` },
+      { id: 6, title: '정책 고치기', text: (theme) => `지금 정부에서 하는 해결책들이 효과가 작다는 의견이 있어. 실패한 사례를 하나 분석해주고, 사람들의 행동을 자연스럽게 바꾸는 '넛지(Nudge)' 아이디어를 활용해서 더 좋은 방법을 제안해 줘.` },
+      { id: 7, title: '부작용 고민', text: (theme) => `네가 제안한 방법을 실제로 쓸 때 생길 수 있는 도덕적인 문제나 사람들 사이의 갈등은 없을까? 그걸 해결할 방법도 알려줘.` },
+      { id: 8, title: '다른 나라 사례', text: (theme) => `비슷한 문제를 겪었던 다른 나라(유럽, 일본 등)는 어떻게 해결했어? 우리나라에 바로 적용할 수 있는 좋은 사례를 하나 골라줘.` },
+      { id: 9, title: '내가 할 일', text: (theme) => `고등학생인 내가 이 문제를 주변에 알리거나 해결하기 위해 학교에서 직접 해볼 수 있는 활동은 뭐가 있을까?` },
+      { id: 10, title: '보고서 완성', text: (theme) => `오늘 대화한 내용을 바탕으로 '주제-통계 근거-원인 분석-해결책'이 포함된 탐구 보고서 초안을 작성해 줘.` },
+    ]
+  },
+  {
+    id: 'career',
+    title: '진로형',
+    icon: <Target className="w-8 h-8" />,
+    description: '관심 있는 전공의 심화 이론을 탐구하고, 고등학교 활동과 대학교 전공을 논리적으로 연결합니다.',
+    prompts: [
+      { id: 1, title: '공부의 연결', text: (major) => `나는 [${major}] 전문가를 꿈꾸고 있어. 고등학교 [교과목명]에서 배운 [핵심 개념]이 대학교 전공 수업에서는 얼마나 더 깊게 쓰이는지 알려줘.` },
+      { id: 2, title: '어려운 이론 도전', text: (major) => `대학교 전공에서 다루는 어려운 이론 중 하나를 골라줘. 고등학교 지식과 비교해서 설명해주고, 이게 왜 중요한지도 알려줘.` },
+      { id: 3, title: '최신 연구', text: (major) => `이 이론과 관련해서 요즘 학자들이 관심을 가지는 주제는 뭐야? 고등학생인 내가 궁금해할 만한 질문을 2가지 던져줘.` },
+      { id: 4, title: '실제 쓰임새', text: (major) => `이 전공 지식이 실제 산업 현장(AI, 바이오, 에너지 등 회사)에서 어떻게 돈을 벌거나 세상을 바꾸고 있어?` },
+      { id: 5, title: '필요한 능력', text: (major) => `이 분야에서 일하는 전문가들에게 가장 필요한 '비판적 생각'과 '문제 해결 능력'은 구체적으로 어떤 상황에서 발휘돼?` },
+      { id: 6, title: '나의 경험 연결', text: (major) => `내가 학교에서 했던 [활동명: 예-화학 실험/수학 발표] 과정이 이 전공에서 요구하는 능력과 어떻게 닮아 있는지 논리적으로 연결해 줘.` },
+      { id: 7, title: '미래의 모습', text: (major) => `10년 뒤, 기술이 더 발전했을 때 이 전공 분야에서 사람이 꼭 해야 할 일과 지켜야 할 도덕적 기준은 무엇일까?` },
+      { id: 8, title: '창의적 융합', text: (major) => `나의 희망 전공과 [전혀 다른 분야: 예-음악, 건축 등]을 합쳐서 새로운 가치를 만들 수 있는 탐구 주제를 추천해 줘.` },
+      { id: 9, title: '공부 계획', text: (major) => `전공에 필요한 실력을 더 키우기 위해, 남은 고등학교 기간 동안 내가 공부해야 할 심화 주제와 읽으면 좋은 책 3권 추천해 줘.` },
+      { id: 10, title: '에세이 완성', text: (major) => `오늘 탐구한 내용을 바탕으로 '전공 탐색 에세이(꿈을 갖게 된 동기-깊이 있는 공부-나의 능력-미래의 모습)'를 작성해 줘.` },
+    ]
+  },
+  {
+    id: 'reflection',
+    title: '성찰형',
+    icon: <RefreshCw className="w-8 h-8" />,
+    description: '메타인지를 활용해 나의 학습 습관을 진단하고, 과학적인 근거를 바탕으로 나만의 성장 전략을 수립합니다.',
+    prompts: [
+      { id: 1, title: '나의 습관 점검', text: (habit) => `나는 공부할 때 [${habit}] 같은 습관이 있어. 이걸 심리학에서는 뭐라고 부르는지, 왜 이런 일이 생기는지 알려줘.` },
+      { id: 2, title: '성적 분석', text: (habit) => `지난 모의고사 취약 과목에서 자꾸 틀리는 이유가 뭘까? 내 생각의 과정 중 어디에서 실수가 생기는지 진단해 줘.` },
+      { id: 3, title: '효율적 공부법', text: (habit) => `내가 아는 것과 모르는 것을 정확히 구별하는 '메타인지'를 높이기 위해, 배운 내용을 다시 떠올리는 '인출 연습'을 어떻게 하면 좋을까?` },
+      { id: 4, title: '집중력 기르기', text: (habit) => `집중력이 떨어지는 이유를 뇌과학적으로 설명해주고, 딴생각 없이 공부에 깊이 빠져들 수 있는 환경을 만드는 방법을 알려줘.` },
+      { id: 5, title: '마음 다스리기', text: (habit) => `공부가 잘 안되어 힘들 때, 이걸 '포기'가 아니라 '더 커지기 위한 단계'로 생각하려면 어떤 마음가짐이 필요할까?` },
+      { id: 6, title: '황금 시간표', text: (habit) => `내 하루 일과를 분석해서, 뇌가 가장 쌩쌩할 때 어려운 공부를 할 수 있는 시간표를 짜줘.` },
+      { id: 7, title: '공부의 이유', text: (habit) => `성적을 위해서가 아니라, 배우는 즐거움을 느끼기 위해서 내가 공부하는 과목들이 내 삶에 어떤 가치를 주는지 알려줘.` },
+      { id: 8, title: '단계별 계획', text: (habit) => `남은 기간을 3단계로 나눠서, 각 단계마다 내가 집중해야 할 공부 전략과 마음가짐을 정리해 줘.` },
+      { id: 9, title: '객관적 관찰', text: (habit) => `오늘 대화를 통해 본 나의 공부 장점과 단점은 뭐야? 네가 나를 지켜본 친구라고 생각하고 솔직하게 말해줘.` },
+      { id: 10, title: '전략서 완성', text: (habit) => `오늘의 대화를 바탕으로 나만의 자기주도 학습전략서'를 완성해줘.` },
+    ]
+  }
+        ];
+
+        const { useState, useEffect, useRef } = React;
+
+        function App() {
+            // 선생님이 작성하신 App 함수 내부 코드를 여기에 그대로 붙여넣으시면 됩니다.
+            // (useState, handleNextStep, return (...) 등 전체 로직)
+            
+            /* [중요] 주신 코드의 return 부분까지 모두 여기에 포함하세요 */
+           const [step, setStep] = useState(0); 
+  const [selectedTrack, setSelectedTrack] = useState(null);
+  const [userName, setUserName] = useState('');
+  const [grade, setGrade] = useState('');
+  const [studentId, setStudentId] = useState(''); 
+  const [interest, setInterest] = useState('');
+  const [currentPromptIdx, setCurrentPromptIdx] = useState(-1); 
+  const [copySuccess, setCopySuccess] = useState(null);
+  const [completedSteps, setCompletedSteps] = useState([]);
+  const [customQuestion, setCustomQuestion] = useState('');
+  const scrollRef = useRef(null);
+
+  useEffect(() => {
+    setCustomQuestion('');
+    if (scrollRef.current) {
+        scrollRef.current.scrollTop = 0;
+    }
+  }, [step, currentPromptIdx]);
+
+  const copyToClipboard = (text) => {
+    if (!text || !text.trim()) return;
+    const el = document.createElement('textarea');
+    el.value = text;
+    document.body.appendChild(el);
+    el.select();
+    document.execCommand('copy');
+    document.body.removeChild(el);
+    setCopySuccess(true);
+    setTimeout(() => setCopySuccess(null), 2000);
+  };
+
+  const getPersonaPrompt = () => {
+    return `안녕! 나는 오늘 너와 함께 ${selectedTrack?.title || '학습'} 프로젝트를 진행할 고등학교 ${grade || 'N'}학년 학생 ${userName || '무명'}이야. 나는 평소 ${interest || '학업'}에 대해 호기심이 아주 많아. 오늘 나는 단순히 정답을 얻는 게 아니라, 너와 깊이 있게 대화하며 나만의 생각을 정리하고 싶어. 준비됐니?`;
+  };
+
+  const getFinalPrompt = () => {
+    return `방금 대화를 바탕으로 학교생활기록부 '개별 세부능력 및 특기사항'에 들어갈 초안을 작성해 줘. 
+포함할 내용: (1) 이 활동을 시작한 이유 (2) AI와 대화하면서 AI의 답변을 그대로 믿지 않고 내가 직접 고민하고 수정한 과정 (3) 활동 후 내가 얼마나 성장했는지.
+길이: 공백 포함 300자 정도.
+규칙: '매우 잘함', '열심히 함' 같은 칭찬보다는 내가 어떤 행동을 했고 어떤 생각을 했는지 구체적으로 써줘. 말투는 '~함', '~임'으로 끝내줘. 고등학교 수준의 내용으로 풀어서 작성.`;
+  };
+
+  const handleNextStep = () => {
+    if (selectedTrack && currentPromptIdx < selectedTrack.prompts.length - 1) {
+        if (!completedSteps.includes(currentPromptIdx)) {
+            setCompletedSteps([...completedSteps, currentPromptIdx]);
+        }
+        setCurrentPromptIdx(prev => prev + 1);
+    } else {
+        setStep(5);
+    }
+  };
+
+  const handlePrevStep = () => {
+    if (currentPromptIdx > -1) {
+        setCurrentPromptIdx(prev => prev - 1);
+    } else {
+        setStep(3);
+    }
+  };
+
+  const handleRestart = () => {
+    setStep(0);
+    setSelectedTrack(null);
+    setUserName('');
+    setGrade('');
+    setStudentId('');
+    setInterest('');
+    setCurrentPromptIdx(-1);
+    setCompletedSteps([]);
+    setCustomQuestion('');
+  };
+
+  const goToHome = () => {
+    setStep(0);
+  };
+
+  const isRequiredStep = 
+    currentPromptIdx === -1 || 
+    (selectedTrack?.id !== 'career' && currentPromptIdx === 0) || 
+    currentPromptIdx === 9;
+
+  return (
+    <div className="min-h-screen bg-slate-50 font-sans text-slate-900 flex flex-col overflow-hidden">
+      {/* Header */}
+      <header className="h-20 bg-white border-b flex items-center justify-between px-10 shrink-0 sticky top-0 z-50">
+        <div className="flex items-center gap-4">
+          <button 
+            onClick={goToHome}
+            className="p-3 hover:bg-slate-100 rounded-2xl transition-colors text-slate-400 hover:text-indigo-600"
+            title="처음으로 이동"
+          >
+            <Home className="w-6 h-6" />
+          </button>
+          
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-100">
+              <Layout className="w-6 h-6 text-white" />
+            </div>
+            <span className="font-black text-2xl tracking-tighter text-slate-900 underline decoration-indigo-500 decoration-4 underline-offset-4">고잔고등학교 AI와 탐구하기</span>
+          </div>
+        </div>
+        
+        <div className="flex items-center gap-8 text-[11px] font-black text-slate-300 uppercase tracking-[0.2em]">
+          {step > 0 && step < 6 && (
+            <div className="hidden md:flex items-center gap-4">
+              <span className={step >= 1 ? 'text-indigo-600' : ''}>Login</span>
+              <ChevronRight className="w-3 h-3" />
+              <span className={step >= 2 ? 'text-indigo-600' : ''}>Track</span>
+              <ChevronRight className="w-3 h-3" />
+              <span className={step >= 3 ? 'text-indigo-600' : ''}>Persona</span>
+              <ChevronRight className="w-3 h-3" />
+              <span className={step >= 4 ? 'text-indigo-600' : ''}>Guide</span>
+              <ChevronRight className="w-3 h-3" />
+              <span className={step >= 6 ? 'text-indigo-600' : ''}>Submit</span>
+            </div>
+          )}
+          <div className="h-8 w-px bg-slate-200 mx-2" />
+          <div className="flex items-center gap-3 normal-case tracking-normal">
+            <div className="text-right">
+                <p className="text-[10px] font-bold text-slate-400 leading-none uppercase tracking-widest">Student</p>
+                <p className="text-sm font-bold text-slate-700">{userName ? `${userName} (${studentId || '학번미입력'})` : 'Guest'}</p>
+            </div>
+            <div className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center border-2 border-white shadow-sm overflow-hidden">
+                <User className="w-5 h-5 text-slate-400" />
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Content Area */}
+      <main className="flex-1 overflow-hidden relative flex flex-col">
+        {/* STEP 0: Intro */}
+        {step === 0 && (
+          <div className="flex-1 flex flex-col items-center justify-center text-center p-12 space-y-12 bg-white overflow-y-auto">
+            <div className="p-6 bg-indigo-600 rounded-[2.5rem] shadow-2xl animate-pulse">
+              <Sparkles className="w-16 h-16 text-white" />
+            </div>
+            <div className="space-y-4">
+              <h1 className="text-6xl font-black text-slate-900 tracking-tight leading-tight italic uppercase">AI와 탐구하기</h1>
+              <p className="text-xl text-slate-400 max-w-3xl leading-relaxed mx-auto font-medium">
+                Gemini와 함께하는 깊이 있는 대화를 통해<br />
+                당신의 학술적 호기심과 진로 역량을 문장으로 완성하세요.
+              </p>
+            </div>
+            <div className="bg-slate-50 border-2 border-slate-100 p-12 rounded-[3.5rem] max-w-3xl text-left space-y-8 shadow-sm">
+              <h4 className="text-3xl font-black text-slate-900 flex items-center gap-4">
+                  <Info className="w-8 h-8 text-indigo-600" /> 이용 방법 안내
+              </h4>
+              <ol className="text-2xl text-slate-700 space-y-5 list-decimal list-inside leading-relaxed font-bold">
+                  <li>나의 관심 분야에 맞는 <span className="text-indigo-600">탐구 트랙</span>을 선택합니다.</li>
+                  <li>Gemini가 나를 인식하도록 <span className="text-indigo-600">페르소나 정보</span>를 입력합니다.</li>
+                  <li>제시되는 프롬프트를 <span className="text-indigo-600">복사</span>하여 Gemini와 대화합니다.</li>
+                  <li>탐구를 마친 후, 나만의 <span className="text-indigo-600">생기부 문장 초안</span>을 생성합니다.</li>
+              </ol>
+            </div>
+            <button 
+              onClick={() => setStep(1)}
+              className="px-16 py-6 bg-indigo-600 text-white rounded-3xl font-black text-2xl hover:bg-indigo-700 transition-all shadow-2xl shadow-indigo-200 hover:-translate-y-1"
+            >
+              성장 로드맵 시작하기
+            </button>
+          </div>
+        )}
+
+        {/* STEP 1: Gemini Login Check */}
+        {step === 1 && (
+          <div className="flex-1 flex flex-col items-center justify-center p-8 space-y-10 overflow-y-auto bg-slate-50 animate-in fade-in duration-500">
+            <div className="text-center space-y-6 max-2xl">
+              <div className="w-24 h-24 bg-indigo-100 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-inner">
+                <LogIn className="w-12 h-12 text-indigo-600" />
+              </div>
+              <h2 className="text-5xl font-black text-slate-900 tracking-tight leading-tight">제미나이를 열고<br />로그인 해주세요.</h2>
+              <p className="text-xl text-slate-500 font-medium leading-relaxed">
+                탐구 활동을 위해 외부 브라우저 탭에서<br />
+                제미나이(Gemini) 사이트에 로그인이 되어 있어야 합니다.
+              </p>
+            </div>
+            
+            <div className="flex flex-col sm:flex-row gap-6 w-full max-w-xl">
+              <a 
+                href="https://gemini.google.com" 
+                target="_blank" 
+                rel="noreferrer"
+                className="flex-1 py-6 bg-white border-2 border-slate-900 text-slate-900 rounded-[1.5rem] font-black text-xl flex items-center justify-center gap-3 hover:bg-slate-50 transition-all shadow-lg"
+              >
+                제미나이 열기 <ExternalLink className="w-6 h-6" />
+              </a>
+              <button 
+                onClick={() => setStep(2)}
+                className="flex-1 py-6 bg-indigo-600 text-white rounded-[1.5rem] font-black text-xl flex items-center justify-center gap-3 hover:bg-indigo-700 transition-all shadow-xl shadow-indigo-200"
+              >
+                준비 완료 <ChevronRight className="w-6 h-6" />
+              </button>
+            </div>
+            
+            <button onClick={() => setStep(0)} className="text-slate-400 font-bold hover:text-slate-600 transition-colors">
+              처음으로 돌아가기
+            </button>
+          </div>
+        )}
+
+        {/* STEP 2: Track Select */}
+        {step === 2 && (
+          <div className="flex-1 flex flex-col items-center justify-center p-8 space-y-12 overflow-y-auto bg-slate-50 animate-in fade-in duration-500">
+            <div className="text-center space-y-4 max-w-3xl">
+              <h2 className="text-5xl font-black text-slate-900 tracking-tight leading-tight">어떤 방향으로 탐구해볼까요?</h2>
+              <p className="text-xl text-slate-500 font-medium leading-relaxed">나의 관심사에 가장 잘 맞는 트랙을 선택하여 깊이 있는 대화를 시작해보세요.</p>
+            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 w-full max-w-7xl px-4">
+              {TRACKS.map(track => (
+                <button 
+                  key={track.id}
+                  onClick={() => { setSelectedTrack(track); setStep(3); }}
+                  className="group flex flex-col p-10 bg-white border-2 border-slate-100 rounded-[3rem] text-left hover:border-indigo-500 hover:shadow-[0_30px_60px_-12px_rgba(79,70,229,0.12)] transition-all relative overflow-hidden"
+                >
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-50 rounded-bl-full opacity-0 group-hover:opacity-40 transition-opacity" />
+                  <div className="p-6 bg-indigo-50 text-indigo-600 rounded-3xl group-hover:bg-indigo-600 group-hover:text-white transition-all mb-8 w-fit shadow-sm relative z-10">
+                    {track.icon}
+                  </div>
+                  <h3 className="text-3xl font-black text-slate-900 mb-4 tracking-tight group-hover:text-indigo-700 transition-colors relative z-10">{track.title}</h3>
+                  <p className="text-lg text-slate-500 leading-relaxed group-hover:text-slate-600 transition-colors relative z-10">{track.description}</p>
+                  <div className="mt-10 flex items-center text-indigo-600 font-black text-lg group-hover:translate-x-3 transition-transform relative z-10">
+                    탐구 시작하기 <ChevronRight className="w-6 h-6 ml-2" />
+                  </div>
+                </button>
+              ))}
+            </div>
+            <button onClick={() => setStep(1)} className="text-slate-400 font-bold hover:text-slate-600 transition-colors">이전 단계로</button>
+          </div>
+        )}
+
+        {/* STEP 3: Persona Setup */}
+        {step === 3 && (
+          <div className="flex-1 flex flex-col items-center justify-center p-8 max-w-xl mx-auto space-y-10 overflow-y-auto w-full animate-in fade-in duration-500">
+            <div className="w-full text-center space-y-2">
+              <h2 className="text-4xl font-extrabold text-slate-900 tracking-tight">페르소나 설정</h2>
+              <p className="text-slate-500 text-lg">나에게 꼭 맞는 가이드를 만들기 위해 정보를 입력해 주세요.</p>
+            </div>
+            <div className="w-full space-y-8 bg-white p-10 rounded-[2.5rem] border border-slate-200 shadow-xl">
+              <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-3">
+                    <label className="text-sm font-black text-slate-800 uppercase tracking-widest text-indigo-600">이름</label>
+                    <input 
+                      type="text" value={userName} onChange={(e) => setUserName(e.target.value)}
+                      className={`w-full p-5 border-2 rounded-2xl outline-none transition-all text-lg font-medium ${userName ? 'border-slate-100 bg-slate-50' : 'border-indigo-200 bg-white'}`}
+                      placeholder="이름"
+                    />
+                  </div>
+                  <div className="space-y-3">
+                    <label className="text-sm font-black text-slate-800 uppercase tracking-widest text-indigo-600">학번</label>
+                    <input 
+                      type="text" value={studentId} onChange={(e) => setStudentId(e.target.value)}
+                      className={`w-full p-5 border-2 rounded-2xl outline-none transition-all text-lg font-medium ${studentId ? 'border-slate-100 bg-slate-50' : 'border-indigo-200 bg-white'}`}
+                      placeholder="학번 (예: 10101)"
+                    />
+                  </div>
+              </div>
+              <div className="space-y-3">
+                <label className="text-sm font-black text-slate-800 uppercase tracking-widest text-indigo-600">학년</label>
+                <input 
+                  type="number" value={grade} onChange={(e) => setGrade(e.target.value)}
+                  className={`w-full p-5 border-2 rounded-2xl outline-none transition-all text-lg font-medium ${grade ? 'border-slate-100 bg-slate-50' : 'border-indigo-200 bg-white'}`}
+                  placeholder="현재 학년 (예: 1)"
+                />
+              </div>
+              <div className="space-y-3">
+                <label className="text-sm font-black text-slate-800 uppercase tracking-widest text-indigo-600">
+                  {selectedTrack?.id === 'reflection' ? '나의 공부 습관' : selectedTrack?.id === 'career' ? '관심 전공' : '탐구하고 싶은 주제'}
+                </label>
+                <textarea 
+                  value={interest} onChange={(e) => setInterest(e.target.value)}
+                  className={`w-full p-5 border-2 rounded-2xl outline-none transition-all h-32 resize-none text-lg font-medium ${interest ? 'border-slate-100 bg-slate-50' : 'border-indigo-200 bg-white'}`}
+                  placeholder={selectedTrack?.id === 'reflection' ? "예: 계획만 짜고 실천하지 않음" : "예: 지방 소멸 문제, 바이오 공학 등"}
+                />
+              </div>
+            </div>
+            <div className="flex gap-6 w-full">
+              <button onClick={() => setStep(2)} className="flex-1 p-5 text-slate-400 font-bold hover:text-slate-600 transition-colors">뒤로가기</button>
+              <button 
+                disabled={!userName || !grade || !interest || !studentId}
+                onClick={() => setStep(4)}
+                className="flex-[2] p-5 bg-indigo-600 text-white rounded-2xl font-bold text-xl hover:bg-indigo-700 transition-all disabled:opacity-30 shadow-lg shadow-indigo-100"
+              >
+                가이드 생성 완료
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* STEP 4: Guide Loop */}
+        {step === 4 && selectedTrack && (
+          <div className="flex-1 flex bg-slate-50 overflow-hidden animate-in fade-in duration-500">
+            <aside className="w-80 border-r bg-white flex flex-col shrink-0 shadow-sm overflow-hidden">
+              <div className="p-8 border-b">
+                <div className="flex items-center gap-3 text-indigo-600 font-black mb-1">
+                  {selectedTrack.icon}
+                  <span className="uppercase">{selectedTrack.title} 트랙</span>
+                </div>
+                <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden mt-6">
+                  <div 
+                    className="h-full bg-indigo-600 transition-all duration-700" 
+                    style={{ width: `${((currentPromptIdx + 2) / (selectedTrack.prompts.length + 1)) * 100}%` }}
+                  />
+                </div>
+                <div className="text-[10px] font-bold text-slate-400 mt-3 flex justify-between tracking-widest">
+                  <span>PROGRESS</span>
+                  <span>{currentPromptIdx === -1 ? 0 : currentPromptIdx + 1} / {selectedTrack.prompts.length}</span>
+                </div>
+              </div>
+              
+              <nav className="flex-1 overflow-y-auto p-4 space-y-1">
+                <button 
+                  onClick={() => setCurrentPromptIdx(-1)}
+                  className={`w-full flex items-center gap-4 p-4 rounded-2xl text-sm transition-all ${
+                    currentPromptIdx === -1 ? 'bg-indigo-50 text-indigo-700 font-bold' : 'text-slate-400 hover:bg-slate-50'
+                  }`}
+                >
+                  <div className={`w-6 h-6 rounded-lg flex items-center justify-center border font-bold text-[10px] ${
+                    currentPromptIdx > -1 ? 'bg-indigo-100 border-indigo-200 text-indigo-600' : 
+                    currentPromptIdx === -1 ? 'border-indigo-600 text-indigo-600' : 'border-slate-200'
+                  }`}>
+                    {currentPromptIdx > -1 ? <CheckCircle2 className="w-4 h-4" /> : 'P'}
+                  </div>
+                  <span className="truncate font-bold">페르소나 설정 (필수)</span>
+                </button>
+
+                {selectedTrack.prompts.map((p, i) => {
+                  const isThisStepRequired = i === 9 || (selectedTrack.id !== 'career' && i === 0);
+                  return (
+                    <button 
+                      key={p.id}
+                      onClick={() => setCurrentPromptIdx(i)}
+                      className={`w-full flex items-center gap-4 p-4 rounded-2xl text-sm transition-all ${
+                        i === currentPromptIdx ? 'bg-indigo-50 text-indigo-700 font-bold' : 
+                        i < currentPromptIdx ? 'text-slate-400 hover:bg-slate-50' : 'text-slate-300 hover:bg-slate-50'
+                      }`}
+                    >
+                      <div className={`w-6 h-6 rounded-lg flex items-center justify-center border font-bold text-[10px] ${
+                        i < currentPromptIdx ? 'bg-indigo-100 border-indigo-200 text-indigo-600' : 
+                        i === currentPromptIdx ? 'border-indigo-600 text-indigo-600' : 'border-slate-200'
+                      }`}>
+                        {i < currentPromptIdx ? <CheckCircle2 className="w-4 h-4" /> : p.id}
+                      </div>
+                      <span className="truncate">
+                        {p.title} {isThisStepRequired ? '(필수)' : '(예시)'}
+                      </span>
+                    </button>
+                  )
+                })}
+              </nav>
+
+              <div className="p-6 border-t bg-slate-50">
+                <a href="https://gemini.google.com" target="_blank" rel="noreferrer"
+                    className="flex items-center justify-center gap-2 w-full p-4 bg-slate-900 text-white rounded-2xl text-sm font-bold hover:bg-black transition-all shadow-lg">
+                    Gemini 바로가기 <ExternalLink className="w-4 h-4" />
+                </a>
+              </div>
+            </aside>
+
+            <section ref={scrollRef} className="flex-1 flex flex-col p-12 overflow-y-auto items-center">
+                <div className="max-w-3xl w-full space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                    <div className="space-y-3">
+                        <div className="flex items-center gap-3 text-indigo-600 font-black text-xs tracking-widest uppercase">
+                            <span className="px-3 py-1 bg-indigo-100 rounded-full">Step {currentPromptIdx === -1 ? 'Persona' : currentPromptIdx + 1}</span>
+                            <span>{isRequiredStep ? "Essential Step" : "Deep Customization"}</span>
+                        </div>
+                        <h2 className="text-5xl font-black text-slate-900 tracking-tight leading-tight">
+                            {currentPromptIdx === -1 ? "필수 미션: 페르소나 설정" : `${selectedTrack.prompts[currentPromptIdx].title}${isRequiredStep ? ' (필수)' : ' (예시)'}`}
+                        </h2>
+                    </div>
+
+                    <div className="bg-white border-2 border-slate-100 rounded-[3.5rem] p-12 shadow-2xl shadow-slate-200/40 space-y-10 relative overflow-hidden">
+                        <div className="space-y-6 relative z-10">
+                            <div className="flex items-center gap-2 text-slate-400 font-black text-xs tracking-widest uppercase">
+                                <Copy className="w-4 h-4" /> {isRequiredStep ? "Copy Prompt" : "Example Reference"}
+                            </div>
+                            <div className="p-10 bg-slate-50 rounded-[2.5rem] border border-slate-100 text-2xl text-slate-700 leading-relaxed font-semibold italic">
+                                "{currentPromptIdx === -1 ? getPersonaPrompt() : selectedTrack.prompts[currentPromptIdx].text(interest)}"
+                            </div>
+
+                            {!isRequiredStep && (
+                              <div className="space-y-4 pt-4 border-t border-slate-100">
+                                <div className="flex items-center gap-2 text-indigo-600 font-black text-xs tracking-widest uppercase">
+                                    <Edit3 className="w-4 h-4" /> 나만의 질문 작성하기
+                                </div>
+                                <textarea 
+                                  value={customQuestion} onChange={(e) => setCustomQuestion(e.target.value)}
+                                  className="w-full p-6 bg-indigo-50/30 border-2 border-indigo-100 rounded-[2rem] text-xl text-slate-800 outline-none focus:border-indigo-500 transition-all min-h-[150px] resize-none"
+                                  placeholder={currentPromptIdx === 0 && selectedTrack.id === 'career' 
+                                    ? "예: 나는 인공지능 전문가를 꿈꾸고 있어. 고등학교 [정보] 교과에서 배운 [기계학습] 개념이 대학교 전공 수업에서는 얼마나 더 깊게 쓰이는지 알려줘."
+                                    : "위 예시를 참고하여 본인만의 질문을 구체적으로 작성해보세요."}
+                                />
+                              </div>
+                            )}
+                        </div>
+
+                        <div className="flex flex-col sm:flex-row gap-4 relative z-10">
+                            <button onClick={handlePrevStep} className="flex-1 py-6 bg-slate-100 text-slate-500 rounded-[1.5rem] font-black text-xl flex items-center justify-center gap-3 hover:bg-slate-200 active:scale-95 transition-all">
+                                <ChevronLeft className="w-7 h-7" /> 이전
+                            </button>
+                            
+                            {isRequiredStep ? (
+                              <button onClick={() => copyToClipboard(currentPromptIdx === -1 ? getPersonaPrompt() : selectedTrack.prompts[currentPromptIdx].text(interest))}
+                                  className="flex-[1.5] py-6 bg-white border-2 border-indigo-600 text-indigo-600 rounded-[1.5rem] font-black text-xl flex items-center justify-center gap-3 hover:bg-indigo-50 active:scale-95 transition-all">
+                                  <Clipboard className="w-7 h-7" /> 프롬프트 복사
+                              </button>
+                            ) : (
+                              <button onClick={() => copyToClipboard(customQuestion)} disabled={!customQuestion.trim()}
+                                  className="flex-[1.5] py-6 bg-white border-2 border-indigo-600 text-indigo-600 rounded-[1.5rem] font-black text-xl flex items-center justify-center gap-3 hover:bg-indigo-50 active:scale-95 transition-all disabled:opacity-30 disabled:grayscale">
+                                  <Clipboard className="w-7 h-7" /> 작성한 질문 복사
+                              </button>
+                            )}
+
+                            <button onClick={handleNextStep} className="flex-[1.5] py-6 bg-indigo-600 text-white rounded-[1.5rem] font-black text-xl flex items-center justify-center gap-3 hover:bg-indigo-700 hover:scale-[1.03] active:scale-95 transition-all shadow-xl shadow-indigo-100">
+                                다음 단계 <ChevronRight className="w-7 h-7" />
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+          </div>
+        )}
+
+        {/* STEP 5: Final Prompt */}
+        {step === 5 && (
+          <div className="flex-1 flex flex-col items-center justify-center p-8 max-w-4xl mx-auto space-y-12 animate-in fade-in duration-1000 overflow-y-auto w-full">
+            <div className="text-center space-y-4">
+              <div className="w-24 h-24 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center mx-auto shadow-2xl animate-bounce">
+                <Sparkles className="w-12 h-12" />
+              </div>
+              <h2 className="text-5xl font-black text-slate-900 tracking-tight leading-tight">생활기록부 문장 만들기</h2>
+              <p className="text-xl text-slate-500 font-medium leading-relaxed">마지막으로 아래 프롬프트를 제미나이에게 입력하면 생기부 초안이 완성됩니다.</p>
+            </div>
+
+            <div className="w-full bg-white border-2 border-indigo-600 rounded-[3rem] p-12 shadow-2xl relative">
+              <div className="space-y-8">
+                <div className="flex items-center justify-between border-b border-slate-100 pb-6">
+                    <h4 className="text-xs font-black text-indigo-400 uppercase tracking-widest flex items-center gap-2">
+                        <Clipboard className="w-5 h-5" /> Final Magic Prompt
+                    </h4>
+                    <button onClick={() => copyToClipboard(getFinalPrompt())}
+                        className="flex items-center gap-2 text-indigo-600 font-black text-sm bg-indigo-50 px-6 py-3 rounded-[1rem] hover:bg-indigo-600 hover:text-white transition-all shadow-sm active:scale-95">
+                        {copySuccess ? "COPIED!" : "전체 복사하기"}
+                    </button>
+                </div>
+                <div className="text-slate-800 leading-[1.8] text-2xl whitespace-pre-wrap font-bold p-10 bg-slate-50 rounded-[2rem] border border-slate-100 italic">
+                    "{getFinalPrompt()}"
+                </div>
+              </div>
+            </div>
+
+            <div className="flex gap-4">
+                <button onClick={() => setStep(4)} className="text-slate-400 hover:text-indigo-600 font-black flex items-center gap-2 text-sm transition-colors">
+                    <ChevronLeft className="w-4 h-4" /> 이전 단계로
+                </button>
+                <button onClick={() => setStep(6)} className="px-10 py-5 bg-indigo-600 text-white rounded-2xl font-black text-xl hover:bg-indigo-700 transition-all flex items-center gap-3 shadow-lg">
+                    저장 및 제출 안내 <ChevronRight className="w-6 h-6" />
+                </button>
+            </div>
+          </div>
+        )}
+
+        {/* STEP 6: Submission Guide */}
+        {step === 6 && (
+          <div className="flex-1 flex flex-col items-center justify-center p-8 max-w-5xl mx-auto space-y-12 animate-in fade-in duration-700 overflow-y-auto w-full">
+            <div className="text-center space-y-4">
+              <div className="w-24 h-24 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto shadow-2xl">
+                <CheckCircle2 className="w-12 h-12" />
+              </div>
+              <h2 className="text-5xl font-black text-slate-900 tracking-tight">탐구 완료! 결과 제출하기</h2>
+              <p className="text-xl text-slate-500 font-medium leading-relaxed">수고하셨습니다! 아래 두 가지 항목을 각각 제출해 주세요.</p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full">
+              {/* 항목 1: 한글 파일 저장 및 제출 */}
+              <div className="bg-white border-2 border-indigo-100 p-10 rounded-[3rem] shadow-xl space-y-6 relative overflow-hidden group">
+                <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:scale-110 transition-transform">
+                    <FileText className="w-20 h-20" />
+                </div>
+                <div className="flex items-center gap-3 text-indigo-600 font-black text-xl">
+                  <Save className="w-6 h-6" />
+                  <span>1. 탐구 보고서 제출 (파일)</span>
+                </div>
+                <div className="space-y-4">
+                  <div className="text-slate-700 text-lg leading-relaxed font-medium">
+                    1. <b>10번째 답변(보고서 or 에세이 or 전략서)</b>을 복사합니다.<br />
+                    2. <b>한글(HWP)</b> 파일을 열어 붙여넣습니다.<br />
+                    3. 아래 파일명으로 저장 후 <b>리로스쿨에 업로드</b>하세요.
+                  </div>
+                  <div className="p-4 bg-indigo-50 border border-indigo-100 rounded-2xl font-black text-indigo-700 text-base text-center">
+                    AI와 탐구하기 보고서({studentId}{userName})
+                  </div>
+                </div>
+              </div>
+
+              {/* 항목 2: 리로스쿨 직접 입력 제출 */}
+              <div className="bg-white border-2 border-green-100 p-10 rounded-[3rem] shadow-xl space-y-6 relative overflow-hidden group">
+                <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:scale-110 transition-transform">
+                    <MousePointer2 className="w-20 h-20" />
+                </div>
+                <div className="flex items-center gap-3 text-green-600 font-black text-xl">
+                  <Clipboard className="w-6 h-6" />
+                  <span>2. 생기부 문장 제출 (텍스트)</span>
+                </div>
+                <div className="space-y-4">
+                  <div className="text-slate-700 text-lg leading-relaxed font-medium">
+                    1. Gemini의 <b>마지막 답변(생기부 문장)</b>을 복사합니다.<br />
+                    2. <b>리로스쿨 {'->'} 포트폴리오 {'->'} 자율적 교육과정 {'->'} 해당 학년 / 반 과제함</b>의 질문 답변란을 클릭합니다.<br />
+                    3. 복사한 내용을 <b>직접 붙여넣어(Ctrl+V)</b> 제출하세요.
+                  </div>
+                  <div className="p-4 bg-green-50 border border-green-100 rounded-2xl space-y-2 text-center">
+                    <p className="font-black text-green-800">고잔고등학교 리로스쿨</p>
+                    <p className="text-xs text-green-600 font-bold uppercase tracking-widest font-sans">
+                      Portfolio {'->'} Autonomous Curriculum
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex flex-col items-center gap-8 pb-12 w-full">
+                <a href="https://gojan.riroschool.kr" target="_blank" rel="noreferrer"
+                  className="px-12 py-6 bg-slate-900 text-white rounded-3xl font-black text-2xl hover:bg-black transition-all shadow-2xl flex items-center gap-4 hover:-translate-y-1">
+                  리로스쿨 바로가기 <ExternalLink className="w-8 h-8" />
+                </a>
+                
+                <button onClick={handleRestart}
+                    className="text-slate-400 hover:text-slate-600 font-black flex items-center gap-3 text-sm uppercase tracking-widest transition-colors">
+                    <RefreshCw className="w-5 h-5" /> 처음으로 돌아가기
+                </button>
+            </div>
+          </div>
+        )}
+      </main>
+
+      {/* Global Toast */}
+      {copySuccess && (
+        <div className="fixed bottom-12 right-12 bg-slate-900 text-white px-10 py-6 rounded-[2rem] shadow-2xl flex items-center gap-5 animate-in slide-in-from-bottom-10 z-[100] border border-slate-700">
+          <div className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center shadow-lg shadow-green-500/40">
+            <CheckCircle2 className="w-6 h-6" />
+          </div>
+          <div>
+            <p className="font-black text-lg leading-none">복사 성공!</p>
+            <p className="text-xs text-slate-400 font-medium mt-1">제미나이 대화창에 붙여넣으세요 (Ctrl+V)</p>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+          
+        } // App() 함수 끝
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
